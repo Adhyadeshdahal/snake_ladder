@@ -1,1 +1,5 @@
 clang src/*.c -I lib/ -o "bin/build_osx" -L lib/ -framework CoreVideo -framework IOKit -framework Cocoa -framework GLUT -framework OpenGL lib/libraylib.a
+
+
+windows:
+gcc src/*.c -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lkernel32 -luser32 -lwinmm -o build_win.exe

@@ -2,11 +2,29 @@
 #include "raymath.h"
 #include <stdio.h>
 #include <stddef.h>
+#include <time.h>
+#include <stdint.h>
+
+
+#define PLAYER_SIZE 3
 
 int titleScreen();
 int gameScreen();
 int gameOverScreen(char* winner);
 
+void sleep_ms(uint32_t milliseconds) {
+    // Convert milliseconds to seconds and nanoseconds
+    time_t seconds = milliseconds / 1000;
+    long nanoseconds = (milliseconds % 1000) * 1000000;
+
+    // Create a timespec struct for nanosleep
+    struct timespec ts;
+    ts.tv_sec = seconds;
+    ts.tv_nsec = nanoseconds;
+
+    // Call nanosleep with the timespec struct
+    nanosleep(&ts, NULL);
+}
 
 struct Player
 {
@@ -46,15 +64,22 @@ void movePlayerToLevel(struct Player *pl, int level, int widthOfEachBlock, int h
 
 
 
-void movePlayer(struct Player *pl, int i, int widthOfEachBlock, int heightOfEachBlock, int screenHeight, int *arr)
+void movePlayer(struct Player *pl, int i, int widthOfEachBlock, int heightOfEachBlock, int screenHeight, int *arr,bool* moving,int levelItShallReach,int * playerTurn,int diceVal)
 {
+    
     int levelToBeReached = pl->level +i;
-    if(levelToBeReached<=100){
+    int j=0;
+    if(levelItShallReach<=100){
         movePlayerToLevel(pl, pl->level + i, widthOfEachBlock, heightOfEachBlock, screenHeight);
+    }else{
+        *moving=false;
+        *playerTurn=(*playerTurn+1)% PLAYER_SIZE;
     };
-    if (arr[(pl->level) - 1] != 0)
+    if ((arr[levelItShallReach - 1] != 0) && (pl->level == levelItShallReach))
     {
         movePlayerToLevel(pl, (arr[(pl->level) - 1]), widthOfEachBlock, heightOfEachBlock, screenHeight);
+        *moving=false;
+        *playerTurn=(diceVal==6?*playerTurn:(*playerTurn+1)% PLAYER_SIZE);
     }
 }
 
@@ -104,6 +129,7 @@ int gameOverScreen(char* winner){
 int gameScreen(void)
 {
     int screenHeight, screenWidth;
+    bool moving=false;
     int playerTurn=0;
     int count =0;
     char* buttonText;
@@ -144,6 +170,7 @@ int gameScreen(void)
     Rectangle sourceRec = {0, 0, 377 / 6.0f, 377 / 6.0f};
     Vector2 position = {660, 600 - (377 / 6)};
     int diceVal = 0;
+    int levelToBeReached;
 
     while (!WindowShouldClose())
     {
@@ -152,21 +179,26 @@ int gameScreen(void)
 
         if (CheckCollisionPointRec(GetMousePosition(), buttonRec))
         {
-            if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+            if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !moving)
             {
                 SetTargetFPS(5);
                 buttonPressed = true;
-            }else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON))
+            }else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && !moving)
             {
                 if(buttonPressed){
                     buttonPressed=false;
                     SetTargetFPS(1);
-                    movePlayer(&players[playerTurn], diceVal, widthOfEachBlock, heightOfEachBlock, screenHeight, arr);
-                    playerTurn=(playerTurn+1)% (int)(sizeof(players)/sizeof(players[0]));
+                    moving=true;
+                    levelToBeReached=players[playerTurn].level+diceVal;
                 }
 
             }
             
+        }
+
+        if(moving && players[playerTurn].level >= levelToBeReached){
+            moving=false;
+            playerTurn=(diceVal==6?playerTurn:(playerTurn+1)% (int)(sizeof(players)/sizeof(players[0])));
         }
         // else
         // {
@@ -181,6 +213,9 @@ int gameScreen(void)
         if (winner)
         {
             gameOverScreen(playerTexts[winner->id -1]);
+        };
+        if(moving){
+            movePlayer(&players[playerTurn], 1, widthOfEachBlock, heightOfEachBlock, screenHeight, arr,&moving,levelToBeReached,&playerTurn,diceVal);
         };
         for (int i = 0; i < 3; i++)
         {
