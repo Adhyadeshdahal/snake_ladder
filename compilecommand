@@ -2,4 +2,4 @@ clang src/*.c -I lib/ -o "bin/build_osx" -L lib/ -framework CoreVideo -framework
 
 
 windows:
-gcc src/*.c -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lkernel32 -luser32 -lwinmm -o build_win.exe
+gcc src/main.c -I include -o build_win.exe lib/libraylib.a -lopengl32 -lgdi32 -lwinmm
